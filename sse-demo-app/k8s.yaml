@@ -1,0 +1,161 @@
+###############################################################################
+# ConfigMap (frontend-config)
+###############################################################################
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: frontend-config
+#   namespace: sse-demo-app
+#   labels:
+#     app: web
+# data:
+#   REACT_APP_SERVER_BASE_URL: "/api"
+
+
+
+###############################################################################
+# 1) Backend (server) Deployment
+###############################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-deployment
+  namespace: sse-demo-app
+  labels:
+    app: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: server
+  template:
+    metadata:
+      labels:
+        app: server
+    spec:
+      containers:
+      - name: server
+        image: nukano0522/sse-demo-server:latest
+        ports:
+          - containerPort: 5000
+        env:
+          - name: CHOKIDAR_USEPOLLING
+            value: "true"
+        command: ["npm", "start"]
+        # ↑ Dockerfile と同様に node_modules を含んだコンテナで実行する想定
+        #   ホットリロードなど、Compose で使っていたバインドマウントは省略
+
+---
+###############################################################################
+# 2) Backend (server) Service
+###############################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: server
+  namespace: sse-demo-app
+  labels:
+    app: server
+spec:
+  type: ClusterIP
+  selector:
+    app: server
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+      name: http
+
+---
+###############################################################################
+# 3) Frontend Deployment
+###############################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: sse-demo-app
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: nukano0522/sse-demo-frontend:latest
+        ports:
+          - containerPort: 3000
+        env:
+          - name: CHOKIDAR_USEPOLLING
+            value: "true"
+          # server Service へ接続したい場合、Service名を"server"にしているので以下のように設定
+          - name: REACT_APP_SERVER_BASE_URL
+            value: "/api"
+            # valueFrom:
+            #   configMapKeyRef:
+            #     name: frontend-config
+            #     key: REACT_APP_SERVER_BASE_URL
+        command: ["npm", "start"]
+
+---
+###############################################################################
+# 4) Frontend Service
+###############################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: sse-demo-app
+  labels:
+    app: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+
+---
+###############################################################################
+# 5) Ingress (HTTP → frontend Service → server Service)
+###############################################################################
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sse-demo-ingress
+  namespace: sse-demo-app
+  labels:
+    app: web
+  annotations:
+    # 下記は一例: Nginx Ingress Controller であれば必要に応じ設定
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: localhost        # 任意のホスト名。実際の運用ドメインに合わせて修正
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 3000
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: server
+            port:
+              number: 5000
