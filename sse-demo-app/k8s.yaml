@@ -35,7 +35,7 @@ spec:
     spec:
       containers:
       - name: server
-        image: nukano0522/sse-demo-server:latest
+        image: IMAGE_PLACEHOLDER_FOR_SERVER
         ports:
           - containerPort: 5000
         env:
@@ -89,7 +89,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: nukano0522/sse-demo-frontend:latest
+        image: IMAGE_PLACEHOLDER_FOR_FRONTEND 
         ports:
           - containerPort: 3000
         env:
