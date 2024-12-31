@@ -15,7 +15,7 @@ const PORT = 5000;
  */
 
 // SSEエンドポイント (GET)
-app.get("/api/sse", (req, res) => {
+app.get("/app1/api/sse", (req, res) => {
   const userId = req.query.user_id; // ★ クエリパラメータから取得
   console.log(`(Debug) Received user_id: ${userId}`);
 

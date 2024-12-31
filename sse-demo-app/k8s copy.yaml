@@ -35,7 +35,7 @@ spec:
     spec:
       containers:
       - name: server
-        image: nukano0522/sse-demo-server:v0.1.0
+        image: nukano0522/sse-demo-server:latest
         ports:
           - containerPort: 5000
         env:
@@ -89,7 +89,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: nukano0522/sse-demo-frontend:v0.1.0
+        image: nukano0522/sse-demo-frontend:latest
         ports:
           - containerPort: 3000
         env:
@@ -97,7 +97,7 @@ spec:
             value: "true"
           # server Service へ接続したい場合、Service名を"server"にしているので以下のように設定
           - name: REACT_APP_SERVER_BASE_URL
-            value: "/app1/api"
+            value: "/api"
             # valueFrom:
             #   configMapKeyRef:
             #     name: frontend-config
@@ -145,14 +145,14 @@ spec:
   - host: localhost        # 任意のホスト名。実際の運用ドメインに合わせて修正
     http:
       paths:
-      - path: /app1
+      - path: /
         pathType: Prefix
         backend:
           service:
             name: frontend
             port:
               number: 3000
-      - path: /app1/api
+      - path: /api
         pathType: Prefix
         backend:
           service:
